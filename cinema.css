@@ -16,3 +16,72 @@
 /* Requested refinements only — v3 */
 .mosaic-tile{border-radius:14px;background:#111;position:relative}.mosaic-page-preview{position:absolute;top:0;left:0;transform-origin:0 0;overflow:hidden;background:#090909;pointer-events:none}.mosaic-page-preview header{position:relative!important}.mosaic-page-preview .page-title,.mosaic-page-preview .studio-opening,.mosaic-page-preview .contact-card{opacity:1!important;transform:none!important}.clients>.eyebrow{display:block;text-align:center;width:100%}.studio-film video{display:block;width:100%;height:auto;aspect-ratio:16/9;max-height:none;object-fit:cover}.service-number{display:block;margin-bottom:28px}#service-panel h2{margin-top:0}.route-flight{backface-visibility:hidden;will-change:transform,left,top,width,height,border-radius}
 @media(max-width:760px){.service-number{margin-bottom:22px}.mosaic-tile{border-radius:7px}}
+
+/* v4 — loading, transitions and mobile refinements */
+/* Clips appear only when frames are moving; images only when fully downloaded. */
+video{transition:opacity .5s ease}video:not([poster]):not(.is-playing){opacity:0}
+img{transition:opacity .6s ease}img.img-pending{opacity:0}
+video::-webkit-media-controls,video::-webkit-media-controls-enclosure,video::-webkit-media-controls-panel,video::-webkit-media-controls-overlay-play-button,video::-webkit-media-controls-start-playback-button{display:none!important;-webkit-appearance:none;opacity:0!important}
+/* Loader shows the real progress of the nine clips. */
+.classic-loader.has-progress i{animation:none;transform:none;width:8%;transition:width .45s ease}
+.mosaic-tile{will-change:transform,opacity;backface-visibility:hidden}.mosaic-main{will-change:left,top,width,height}
+/* Project opening: dark veil behind the travelling clip. */
+.route-veil{position:fixed;inset:0;z-index:499;background:rgba(4,4,4,.86);opacity:0;pointer-events:none}
+.route-flight{background-size:cover;background-position:center;will-change:transform,left,top,width,height}.route-flight>video{opacity:1!important}
+.route-still{display:block;width:100%;height:100%;object-fit:cover}
+.film-layer{will-change:opacity,transform}
+.discover-cursor{left:0!important;top:0!important;backdrop-filter:none;background:#ffffff1c;will-change:transform}
+/* YouTube: the box opens the original video in a new tab. */
+.yt-link{display:flex;align-items:center;justify-content:center;text-align:center;width:100%;min-height:120px;margin-top:25px;padding:30px 24px;border-radius:24px;color:var(--lime);transition:color .8s cubic-bezier(.22,1,.36,1),border-color .8s cubic-bezier(.22,1,.36,1),background-color .8s cubic-bezier(.22,1,.36,1)}
+.yt-link small{display:block;margin-top:10px;color:var(--muted);transition:color .8s cubic-bezier(.22,1,.36,1)}
+.yt-link:hover,.yt-link:focus-visible{border-color:var(--lime);background:#f7eb6214}.yt-link:hover small,.yt-link:focus-visible small{color:#d8d38a}
+/* Contact: map link on the line of "40125 Bologna, Italy". */
+.address-row{display:flex;justify-content:space-between;align-items:flex-end;gap:12px 20px;flex-wrap:wrap;margin:20px 0}
+.address-row address{margin:0}.address-row .action{margin-left:auto;white-space:nowrap}
+@media(max-width:760px){
+ /* Smaller, framed opening clip: the whole ROOF logo stays visible. */
+ .brand-layer{display:flex;align-items:center;justify-content:center;padding:0 5vw}
+ .brand-layer video{width:100%;height:auto;aspect-ratio:4/3;border-radius:18px;object-fit:cover;box-shadow:0 30px 80px #000a}
+ /* Selected work: lower, button on the caption line, smaller. */
+ .case-caption{bottom:64px}.case-caption h2{margin:10px 0 12px}
+ .case-caption>div{display:flex;align-items:center;justify-content:space-between;gap:14px}
+ .case-caption p{margin:0;font-size:12px;line-height:1.45;flex:1;min-width:0}
+ .case-caption .action{margin:0;flex:none;padding:8px 13px;font-size:10px;gap:8px;white-space:nowrap}
+ /* Services menu: compact two-column chips, all visible. */
+ .service-nav{display:grid;grid-template-columns:1fr 1fr;gap:8px;overflow:visible;padding-bottom:6px}
+ .service-nav button{flex:none;margin:0;min-height:58px;padding:11px 13px;border-radius:14px;gap:9px;align-items:center;transition:background-color .35s ease,border-color .35s ease,color .35s ease}
+ .service-nav button:last-child:nth-child(odd){grid-column:1/-1}
+ .service-nav span{font-size:13px;line-height:1.2;letter-spacing:-.01em}.service-nav small{font-size:9px}
+ .service-nav [aria-selected=true]{background:var(--lime);border-color:var(--lime);color:#111}.service-nav [aria-selected=true] small{color:#111}
+ /* Expensive glass blur off on phones (it re-renders over every playing video). */
+ header,.action,.filters button,.project-back,#menu,.embed-button{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+ .action,.filters button,.project-back,#menu,.embed-button{background:#1c1d18e6}
+ .address-row{margin:16px 0;flex-wrap:nowrap;gap:10px}.address-row address{font-size:14px;line-height:1.7}.address-row .action{padding:9px 12px;font-size:10px;gap:7px}.yt-link{min-height:100px;padding:24px 18px;border-radius:20px}
+}
+
+/* v5 — lightbox and What we do hover */
+#lightbox{position:fixed;inset:0;width:100vw;height:100vh;height:100dvh;max-width:none;max-height:none;margin:0;padding:0;border:0;background:transparent;overflow:hidden;color:var(--fg)}
+#lightbox::backdrop{background:transparent}
+html.lb-lock{overflow:hidden}
+.lb-bg{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 42%,rgba(38,40,28,.9),rgba(5,5,5,.97) 72%);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);cursor:zoom-out}
+.lb-frame{position:fixed;margin:0;overflow:hidden;background:#0d0d0b;border-radius:22px;outline:1px solid #ffffff1f;outline-offset:-1px;will-change:left,top,width,height,transform}
+#lightbox .lb-frame img{display:block;width:100%;height:100%;max-width:none;max-height:none;object-fit:cover;will-change:transform}
+.lb-meta{position:fixed;left:0;right:0;bottom:clamp(18px,4vh,40px);display:flex;justify-content:center;align-items:center;gap:18px;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#cfcfc4;pointer-events:none}
+.lb-meta .lb-count{color:var(--lime)}.lb-meta .lb-title:empty{display:none}
+.lb-meta .lb-title:not(:empty)+.lb-count:before{content:'';display:inline-block;width:28px;height:1px;background:#ffffff40;vertical-align:middle;margin-right:18px}
+.lb-close{position:fixed;z-index:2;top:clamp(16px,3vh,28px);right:clamp(16px,3vw,32px);width:54px;height:54px;padding:0;border-radius:50%;border:1px solid #ffffff38;background:linear-gradient(135deg,#ffffff22,#ffffff08);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);box-shadow:inset 0 1px 0 #ffffff30,0 12px 30px #0007;cursor:pointer;transition:background-color .5s cubic-bezier(.22,1,.36,1),border-color .5s cubic-bezier(.22,1,.36,1)}
+.lb-close span{position:absolute;left:50%;top:50%;width:20px;height:1.5px;border-radius:2px;background:#f2f1ea;transition:transform .6s cubic-bezier(.22,1,.36,1),background-color .4s ease}
+.lb-close span:first-child{transform:translate(-50%,-50%) rotate(45deg)}.lb-close span:last-child{transform:translate(-50%,-50%) rotate(-45deg)}
+.lb-close:hover,.lb-close:focus-visible{background:var(--lime);border-color:var(--lime)}
+.lb-close:hover span,.lb-close:focus-visible span{background:#111}
+.lb-close:hover span:first-child,.lb-close:focus-visible span:first-child{transform:translate(-50%,-50%) rotate(135deg)}
+.lb-close:hover span:last-child,.lb-close:focus-visible span:last-child{transform:translate(-50%,-50%) rotate(45deg)}
+.project-gallery button{cursor:zoom-in}.project-gallery button img{transition:transform .7s cubic-bezier(.22,1,.36,1),opacity .6s ease}.project-gallery button:hover img{transform:scale(1.04)}
+@media(max-width:760px){.lb-close{width:46px;height:46px}.lb-bg{backdrop-filter:none;-webkit-backdrop-filter:none}}
+/* Home / What we do: hover lights the service in yellow and turns the arrow to the right. */
+.service-orbit a{position:relative;transition:color .45s cubic-bezier(.22,1,.36,1),padding-left .5s cubic-bezier(.22,1,.36,1)}
+.service-orbit a:after{content:'';position:absolute;left:0;right:0;bottom:-1px;height:1px;background:var(--lime);transform:scaleX(0);transform-origin:left;transition:transform .65s cubic-bezier(.22,1,.36,1)}
+.service-orbit span{display:inline-flex;transition:transform .55s cubic-bezier(.22,1,.36,1)}
+.service-orbit a:hover,.service-orbit a:focus-visible{color:var(--lime);padding-left:14px}
+.service-orbit a:hover:after,.service-orbit a:focus-visible:after{transform:scaleX(1)}
+.service-orbit a:hover span,.service-orbit a:focus-visible span{transform:translateX(4px) rotate(45deg)}
