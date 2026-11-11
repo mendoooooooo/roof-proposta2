@@ -26,7 +26,7 @@ function makeVideo(src,preload='metadata'){const v=document.createElement('video
 function pooled(src,preload){let v=pool.get(src);if(!v){v=makeVideo(src,preload);pool.set(src,v)}else if(preload==='auto')v.preload='auto';return v}
 const inTransit=v=>!!v.closest('.opening-mosaic,.route-flight');
 // Swap each placeholder for the shared element. Moving a playing <video> keeps its buffer and current time: no restart, no reload.
-function hydrate(root=main){root.querySelectorAll('video[data-src]').forEach(ph=>{const src=ph.dataset.src;let v=pool.get(src);if(v&&v.isConnected){if(inTransit(v))return;v=makeVideo(src)}else if(!v)v=pooled(src);const playing=v.classList.contains('is-playing');v.className=ph.className;v.classList.toggle('is-playing',playing);const poster=ph.getAttribute('poster');if(poster)v.poster=poster;else v.removeAttribute('poster');ph.replaceWith(v)})}
+function hydrate(root=main){root.querySelectorAll('video[data-src]').forEach(ph=>{const src=ph.dataset.src;let v=pool.get(src);if(v&&v.isConnected){if(inTransit(v))return;v=makeVideo(src)}else if(!v)v=pooled(src,ph.closest('.extra-video')?'metadata':'auto');const playing=v.classList.contains('is-playing');v.className=ph.className;v.classList.toggle('is-playing',playing);const poster=ph.getAttribute('poster');v.removeAttribute('poster');const box=ph.parentElement;if(poster&&box){box.style.backgroundImage=`url("${poster}")`;box.classList.add('poster-bg')}ph.replaceWith(v)})}
 function videos(){videoObserver?.disconnect();nearObserver?.disconnect();videoObserver=new IntersectionObserver(entries=>entries.forEach(({target,isIntersecting})=>{if(isIntersecting&&!reduce)target.play().catch(()=>{});else target.pause()}),{threshold:.15});nearObserver=new IntersectionObserver(entries=>entries.forEach(({target,isIntersecting})=>{if(isIntersecting){target.preload='auto';nearObserver.unobserve(target)}}),{rootMargin:'0px 0px 700px 0px'});main.querySelectorAll('video:not([data-src])').forEach(v=>{v.muted=true;nearObserver.observe(v);if(!v.closest('.film-layer'))videoObserver.observe(v)});}
 // A clip stays invisible (poster, photo or dark background shows) until frames are really moving: no black or frozen first frame.
 document.addEventListener('playing',e=>{if(e.target.tagName==='VIDEO')e.target.classList.add('is-playing')},true);
@@ -42,15 +42,18 @@ function home(){
  const clamp=v=>Math.max(0,Math.min(1,v));
  const finalFilm=layers[layers.length-1],shards=document.createElement('div');shards.className='film-shards';finalFilm.append(shards);for(let i=0;i<5;i++){const c=document.createElement('canvas');c.width=400;c.height=1000;c.style.left=(i*20)+'%';shards.append(c)}
  let shardFrame=0;function drawShards(){shardFrame=requestAnimationFrame(drawShards);const finalVideo=finalFilm.querySelector('video');if(!finalVideo||finalVideo.readyState<2||Number(shards.style.opacity)<.01)return;const vw=finalVideo.videoWidth,vh=finalVideo.videoHeight,ratio=innerWidth/innerHeight;let sw=vw,sh=vw/ratio;if(sh>vh){sh=vh;sw=vh*ratio}for(let i=0;i<5;i++){const c=shards.children[i];c.getContext('2d').drawImage(finalVideo,(vw-sw)/2+i*sw/5,(vh-sh)/2,sw/5,sh,0,0,400,1000)}}if(!reduce)drawShards();
- function paint(){raf=0;const h=innerHeight,t=clamp(-cinema.getBoundingClientRect().top/(cinema.offsetHeight-h))*6.9;
- layers.forEach((el,i)=>{const incoming=i===0?1:clamp((t-i+.5)/.7),outgoing=clamp((t-i-.5)/.7),opacity=incoming*(1-outgoing);el.style.opacity=opacity;el.style.visibility=opacity>.001?'visible':'hidden';const on=opacity>.55;if(el._on!==on){el._on=on;el.style.pointerEvents=on?'auto':'none';el.setAttribute('aria-hidden',!on);el.querySelectorAll('a').forEach(a=>a.tabIndex=on?0:-1)}el.style.transform=`translate3d(0,0,0) scale(${1+(1-incoming)*.16-outgoing*.07})`;el.querySelectorAll('video:not([data-src])').forEach(v=>{if(Math.abs(t-i)<1.6&&v.preload!=='auto')v.preload='auto';if(opacity>.05){if(v.paused)v.play().catch(()=>{})}else if(!v.paused)v.pause()})});
- const fracture=clamp((t-6.35)/.55);shards.style.opacity=fracture>0?1:0;finalFilm.querySelector('.case-media').style.opacity=1-fracture;[...shards.children].forEach((c,i)=>c.style.transform=`translate3d(${(i-2)*fracture*70}px,${(i%2?1:-1)*fracture*120}px,${-fracture*500}px) rotateY(${fracture*(i-2)*24}deg) rotateZ(${fracture*(i-2)*5}deg)`);$('.cinema-hud').style.opacity=t<.6?'0':'1';
- const n=Math.min(6,Math.round(t));$('.cinema-count').textContent=n<2?'ROOF / '+(n?'THE STUDIO':'SHOWREEL'):'0'+(n-1)+' / 05';$('.cinema-track i').style.transform=`scaleX(${clamp(t/6.9)})`;
- const st=clamp((h*.65-spatial.getBoundingClientRect().top)/(spatial.offsetHeight-h+h*.65))*3;spatial.style.opacity=clamp((h-spatial.getBoundingClientRect().top)/(h*.85));panels.forEach((el,i)=>{const phase=st-i,entry=clamp(phase/.65),exit=clamp((phase-.85)/.45);el.style.opacity=entry*(1-exit);el.style.transform=`translate3d(${(i%2?1:-1)*(1-entry)*50}vw,0,${-(1-entry)*1200-exit*800}px) rotateY(${(i%2?1:-1)*((1-entry)*55+exit*65)}deg) rotateZ(${exit*-8}deg)`;const on=entry>.7&&exit<.3;if(el._on!==on){el._on=on;el.style.pointerEvents=on?'auto':'none';el.setAttribute('aria-hidden',!on);el.querySelectorAll('a').forEach(a=>a.tabIndex=on?0:-1)}});
+ function paint(){raf=0;const h=innerHeight,f=clamp(-cinema.getBoundingClientRect().top/(cinema.offsetHeight-h)),T=8,t=mobile?(f<.06?f/.06*1.2:1.2+(f-.06)/.94*(T-1.2)):f*T;
+ layers.forEach((el,i)=>{const incoming=i===0?1:clamp((t-i+.5)/.7),outgoing=i===layers.length-1?0:clamp((t-i-.5)/.7),opacity=incoming*(1-outgoing);el.style.opacity=opacity;el.style.visibility=opacity>.001?'visible':'hidden';const on=opacity>.55;if(el._on!==on){el._on=on;el.style.pointerEvents=on?'auto':'none';el.setAttribute('aria-hidden',!on);el.querySelectorAll('a').forEach(a=>a.tabIndex=on?0:-1)}el.style.transform=`translate3d(0,0,0) scale(${1+(1-incoming)*.16-outgoing*.07})`;el.querySelectorAll('video:not([data-src])').forEach(v=>{if(Math.abs(t-i)<1.6&&v.preload!=='auto')v.preload='auto';if(opacity>.05){if(v.paused)v.play().catch(()=>{})}else if(!v.paused)v.pause()})});
+ const fracture=clamp((t-7.25)/.6);shards.style.opacity=fracture>0?1:0;finalFilm.querySelector('.case-media').style.opacity=1-fracture;[...shards.children].forEach((c,i)=>c.style.transform=`translate3d(${(i-2)*fracture*70}px,${(i%2?1:-1)*fracture*120}px,${-fracture*500}px) rotateY(${fracture*(i-2)*24}deg) rotateZ(${fracture*(i-2)*5}deg)`);$('.cinema-hud').style.opacity=t<.6?'0':'1';
+ const n=Math.min(6,Math.round(t));$('.cinema-count').textContent=n<2?'ROOF / '+(n?'THE STUDIO':'SHOWREEL'):'0'+(n-1)+' / 05';$('.cinema-track i').style.transform=`scaleX(${clamp(t/T)})`;
+ if(!mobile){const st=clamp((h*.65-spatial.getBoundingClientRect().top)/(spatial.offsetHeight-h+h*.65))*3;spatial.style.opacity=clamp((h-spatial.getBoundingClientRect().top)/(h*.85));panels.forEach((el,i)=>{const phase=st-i,entry=clamp(phase/.65),exit=clamp((phase-.85)/.45);el.style.opacity=entry*(1-exit);el.style.transform=`translate3d(${(i%2?1:-1)*(1-entry)*50}vw,0,${-(1-entry)*1200-exit*800}px) rotateY(${(i%2?1:-1)*((1-entry)*55+exit*65)}deg) rotateZ(${exit*-8}deg)`;const on=entry>.7&&exit<.3;if(el._on!==on){el._on=on;el.style.pointerEvents=on?'auto':'none';el.setAttribute('aria-hidden',!on);el.querySelectorAll('a').forEach(a=>a.tabIndex=on?0:-1)}})}
  }
  function tick(){if(!raf)raf=requestAnimationFrame(paint)}
  if(!reduce){addEventListener('scroll',tick,{passive:true});addEventListener('resize',tick);paint()}else{document.body.classList.add('reduced-cinema')}
- cleanup=()=>{cancelAnimationFrame(shardFrame);cancelAnimationFrame(raf);removeEventListener('scroll',tick);removeEventListener('resize',tick)};
+ let ambientFrame=0;if(mobile&&!reduce){const layer=main.querySelector('.brand-layer'),amb=document.createElement('canvas');amb.className='brand-ambient';amb.width=18;amb.height=32;amb.setAttribute('aria-hidden','true');layer.prepend(amb);const ctx=amb.getContext('2d');let skip=0;
+  const drawAmbient=()=>{ambientFrame=requestAnimationFrame(drawAmbient);if(++skip%2||+layer.style.opacity<.01)return;const v=layer.querySelector('video:not([data-src])');if(!v||v.readyState<2)return;const vw=v.videoWidth,vh=v.videoHeight,sw=vh*18/32;try{ctx.drawImage(v,(vw-sw)/2,0,sw,vh,0,0,18,32)}catch(_){}};drawAmbient()}
+ let panelIO=null;if(mobile){panelIO=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('is-in');panelIO.unobserve(e.target)}}),{threshold:.12});panels.forEach(p=>panelIO.observe(p))}
+ cleanup=()=>{panelIO?.disconnect();cancelAnimationFrame(ambientFrame);cancelAnimationFrame(shardFrame);cancelAnimationFrame(raf);removeEventListener('scroll',tick);removeEventListener('resize',tick)};
 }
 /* Loader + opening mosaic.
    prepareBoot() runs before the first render: the nine mosaic clips start downloading at once (behind the loader),
@@ -66,7 +69,7 @@ function prepareBoot(){
  const tiles=[...mosaic.children],watch=[];
  tiles.forEach((tile,i)=>{const p=mosaicProjects[i];let el=null;
   if(i===4){if(page==='home')el=pooled(brand,'auto')}
-  else if(mp4(p)[0]){el=pooled(mp4(p)[0],'auto');el.poster=posterOf(p)}
+  else if(mp4(p)[0]){el=pooled(mp4(p)[0],'auto');el.removeAttribute('poster');tile.style.backgroundImage=`url("${cdn(imgs(p)[0],mobile?500:800)}")`;tile.classList.add('poster-bg')}
   else if(imgs(p)[0]){tile.innerHTML=pic(imgs(p)[0],'',mobile?600:900);el=tile.firstChild}
   if(el){if(el.tagName==='VIDEO'){tile.append(el);el.play().catch(()=>{})}watch.push(el)}});
  bootState={overlay,mosaic,tiles,watch,page};
@@ -77,7 +80,7 @@ function boot(){
  // On inner pages the ninth clip is the first video of the page itself.
  const own=main.querySelector('video:not([data-src])');if(page!=='home'&&own){own.preload='auto';own.play().catch(()=>{});watch.push(own)}
  const bar=overlay.querySelector('i');overlay.classList.add('has-progress');
- const ready=el=>el.tagName==='IMG'?el.complete:(!!el.error||el.readyState>=4||(el.duration>0&&el.buffered.length&&el.buffered.end(el.buffered.length-1)>=el.duration-.3));
+ const ready=el=>el.tagName==='IMG'?el.complete:(!!el.error||(el.readyState>=4&&(el.paused||el.currentTime>.15))||(el.readyState>=3&&!el.paused&&el.currentTime>.4)||(el.duration>0&&el.buffered.length&&el.buffered.end(el.buffered.length-1)>=el.duration-.3));
  let done=false;const started=performance.now();
  // The site opens only when every clip is ready (safety exit after 30 s, so a broken network never locks the visitor out).
  const poll=setInterval(()=>{const n=watch.filter(ready).length;bar.style.width=Math.max(8,watch.length?n/watch.length*100:100)+'%';if(n===watch.length||performance.now()-started>30000)finish()},150);
@@ -96,14 +99,15 @@ function boot(){
   tl.addLabel('expand','+=.5');
   // Side tiles leave, then their clips stop decoding: less work while the centre grows.
   tl.to(tiles.filter(t=>t!==center),{opacity:0,scale:.9,duration:.8,ease:'power2.inOut',onComplete(){tiles.forEach(t=>{if(t!==center)t.querySelectorAll('video').forEach(v=>v.pause())})}},'expand');
-  tl.to(mosaic,{backgroundColor:'rgba(9,9,9,0)',duration:1.2,ease:'power2.inOut'},'expand+=.5');
+  tl.to(mosaic,{backgroundColor:'rgba(9,9,9,0)',duration:.3,ease:'power1.in'},'expand+=1.3');
   // The centre lands exactly where the page shows the same clip (full screen, or the framed hero on phones), without stretching it.
-  tl.call(()=>{const r=center.getBoundingClientRect();gsap.set(center,{clearProps:'transform'});Object.assign(center.style,{position:'fixed',left:r.left+'px',top:r.top+'px',width:r.width+'px',height:r.height+'px',margin:0,zIndex:3});
+  tl.call(()=>{const r=center.getBoundingClientRect();gsap.set(center,{clearProps:'transform'});if(page==='home'&&mobile)center.classList.add('brand-mask');const spacer=document.createElement('div');spacer.className='mosaic-tile';spacer.style.visibility='hidden';center.after(spacer);Object.assign(center.style,{position:'fixed',left:r.left+'px',top:r.top+'px',width:r.width+'px',height:r.height+'px',margin:0,zIndex:3});
    const spot=page==='home'&&main.querySelector('.brand-layer video');const t=spot?spot.getBoundingClientRect():{left:0,top:0,width:innerWidth,height:innerHeight};
    gsap.to(center,{left:t.left,top:t.top,width:t.width,height:t.height,borderRadius:spot?getComputedStyle(spot).borderRadius:0,duration:1.6,ease:'power3.inOut',onUpdate:fit,onComplete:land})},null,'expand');
   function land(){
    // Same task: the clip leaves the mosaic and enters the page without pausing.
    mosaic.remove();hydrate();videos();document.body.classList.remove('booting');
+   setTimeout(()=>[data[2].videos[0],brand].forEach(src=>{pooled(src,'auto')}),2500);
    requestAnimationFrame(()=>{dispatchEvent(new Event('scroll'));restoreScroll()});
   }
  }
@@ -182,7 +186,7 @@ lb.querySelector('.lb-close').onclick=closeLightbox;lb.querySelector('.lb-bg').o
   const shell=document.createElement('div');shell.className='route-flight';shell.style.cssText=`left:${r.left}px;top:${r.top}px;width:${r.width}px;height:${r.height}px;border-radius:${radius}`;
   if(source.tagName==='VIDEO'){
    // The real, already playing clip travels (no restart, no black box); a still frame stays behind in its place.
-   const poster=source.getAttribute('poster');if(poster)shell.style.backgroundImage=`url("${poster}")`;
+   const posterBg=source.parentElement&&source.parentElement.style.backgroundImage;if(posterBg)shell.style.backgroundImage=posterBg;
    const still=document.createElement('canvas');still.className='route-still';still.width=source.videoWidth||16;still.height=source.videoHeight||9;try{still.getContext('2d').drawImage(source,0,0,still.width,still.height)}catch(_){}
    source.replaceWith(still);shell.append(source);source.play().catch(()=>{});
   }else shell.append(source.cloneNode(true));
@@ -214,3 +218,5 @@ if(!reduce&&matchMedia('(hover:hover) and (pointer:fine)').matches){
  main.addEventListener('pointermove',e=>{const card=e.target.closest('.archive-card');if(!card)return;const r=card.getBoundingClientRect(),x=(e.clientX-r.left)/r.width-.5,y=(e.clientY-r.top)/r.height-.5;const m=card.querySelector('.archive-media');m.style.transform=`perspective(950px) rotateX(${y*13}deg) rotateY(${-x*13}deg) translateZ(12px)`;m.style.setProperty('--glow-x',((x+.5)*100)+'%');m.style.setProperty('--glow-y',((y+.5)*100)+'%')});
  main.addEventListener('pointerout',e=>{const card=e.target.closest('.archive-card');if(card&&!card.contains(e.relatedTarget)){card.querySelector('.archive-media').style.transform='';}});
 }
+/* Home header: hides while scrolling down, glides back in when scrolling up. */
+(()=>{const header=$('header');let lastY=scrollY;addEventListener('scroll',()=>{const y=scrollY;if(document.body.dataset.page!=='home'){header.classList.remove('is-hidden','is-scrolled');lastY=y;return}header.classList.toggle('is-scrolled',y>40);if($('nav').classList.contains('open')||y<120||y<lastY-6)header.classList.remove('is-hidden');else if(y>lastY+6)header.classList.add('is-hidden');lastY=y},{passive:true})})();
