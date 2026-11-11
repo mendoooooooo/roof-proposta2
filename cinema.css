@@ -82,6 +82,59 @@ html.lb-lock{overflow:hidden}
 .service-orbit a{position:relative;transition:color .45s cubic-bezier(.22,1,.36,1),padding-left .5s cubic-bezier(.22,1,.36,1)}
 .service-orbit a:after{content:'';position:absolute;left:0;right:0;bottom:-1px;height:1px;background:var(--lime);transform:scaleX(0);transform-origin:left;transition:transform .65s cubic-bezier(.22,1,.36,1)}
 .service-orbit span{display:inline-flex;transition:transform .55s cubic-bezier(.22,1,.36,1)}
-.service-orbit a:hover,.service-orbit a:focus-visible{color:var(--lime);padding-left:14px}
-.service-orbit a:hover:after,.service-orbit a:focus-visible:after{transform:scaleX(1)}
-.service-orbit a:hover span,.service-orbit a:focus-visible span{transform:translateX(4px) rotate(45deg)}
+@media(hover:hover) and (pointer:fine){.service-orbit a:hover,.service-orbit a:focus-visible{color:var(--lime);padding-left:14px}}
+@media(hover:hover) and (pointer:fine){.service-orbit a:hover:after,.service-orbit a:focus-visible:after{transform:scaleX(1)}}
+@media(hover:hover) and (pointer:fine){.service-orbit a:hover span,.service-orbit a:focus-visible span{transform:translateX(4px) rotate(45deg)}}
+
+/* v7 — mobile opening, header, lightbox backdrop */
+/* Posters are drawn as a cover-cropped background (never stretched); the clip fades in on top once it moves. */
+.poster-bg{background-size:cover;background-position:center;background-repeat:no-repeat}
+.opening-mosaic,.cinema-loader{min-height:100vh;min-height:100lvh;bottom:auto}
+/* Home header: fixed, slides away when scrolling down and glides back when scrolling up. */
+body[data-page=home] header{position:fixed;top:0;left:0;right:0;transition:transform .6s cubic-bezier(.22,1,.36,1),background-color .45s ease;will-change:transform}
+body[data-page=home] header.is-scrolled{background:#090909b8}
+header.is-hidden{transform:translateY(-110%)}
+/* Lightbox: the dark backdrop reaches past the phone toolbars, the page never shows through. */
+.lb-bg{position:fixed;top:-25vh;bottom:-25vh;left:0;right:0}
+.brand-ambient{display:none}
+@media(max-width:760px){
+ .cinema-scroll{height:680svh}
+ .lb-bg{background:radial-gradient(ellipse at 50% 42%,rgb(24,25,19),rgb(6,6,6) 75%)}
+ body[data-page=home] header.is-scrolled{background:#090909e6}
+ /* ROOF clip fills the screen: the logo band stays whole in the middle, a soft live glow of the same clip fills above and below. */
+ .brand-layer{display:block;padding:0;background:#080808}
+ .brand-ambient{display:block;position:absolute;inset:0;width:100%;height:100%;transform:scale(1.15);opacity:.9}
+ .brand-layer video,.mosaic-main.brand-mask{-webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 22%,#000 78%,transparent 100%);mask-image:linear-gradient(to bottom,transparent 0,#000 22%,#000 78%,transparent 100%)}
+ .brand-layer video{position:absolute;left:50%;top:50%;width:200vw;max-width:none;height:auto;aspect-ratio:16/9;transform:translate(-50%,-50%);border-radius:0;box-shadow:none;object-fit:cover}
+ /* Opening mosaic: portrait 3:4 tiles, centred, so clips are cropped evenly instead of squeezed. */
+ .opening-mosaic{align-content:center;grid-template-rows:repeat(3,auto)}
+ .mosaic-tile{aspect-ratio:3/4}
+}
+
+/* v8 — longer last film, stable mobile studio section */
+.cinema-scroll{height:1040svh}
+@media(max-width:760px){
+ .cinema-scroll{height:800svh}
+ /* Studio / services / contact: regular cards in the page flow that slide in (no scroll-driven 3D on phones). */
+ .spatial-scroll{height:auto;margin-top:0;opacity:1!important;padding:30px 0 20px;background:#090909}
+ .spatial-stage{height:auto;position:relative;overflow:visible;perspective:none;background:radial-gradient(ellipse at 70% 0%,#2a2a1f,#090909 60%)}
+ .spatial-lines,.spatial-label{display:none}
+ .space-panel{position:relative;inset:auto;margin:0 5% 18px;min-height:0;overflow:visible;opacity:0;transform:translateY(40px);transition:transform .9s cubic-bezier(.22,1,.36,1),opacity .8s ease;will-change:auto;box-shadow:0 25px 60px #0007}
+ .space-panel.is-in{opacity:1;transform:none}
+ /* The Studio: "Meet ROOF" goes under the video. */
+ .studio-panel>div{display:contents}
+ .studio-panel video{order:1;width:100%;height:auto;aspect-ratio:16/9;min-height:0}
+ .studio-panel .action{order:2;align-self:flex-start}
+}
+@media(max-width:760px) and (prefers-reduced-motion:reduce){.space-panel{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.cinema-scroll{height:auto}}
+
+/* v9 — "All projects" easy to tap: real button-sized target, separated from the caption above. */
+.cinema-hud a{display:inline-flex;align-items:center;gap:8px;padding:12px 0 12px 16px;margin:-12px 0 -12px auto}
+@media(max-width:760px){
+ .cinema-hud{bottom:0;padding:20px 0 14px}
+ .cinema-hud a{position:relative;margin:0 0 0 auto;padding:4px 0;min-height:0;border:0;border-bottom:1px solid #ffffff55;border-radius:0;background:none;font-size:9px;letter-spacing:.1em}
+ /* Small to the eye, generous to the finger: an invisible touch area around the link. */
+ .cinema-hud a:after{content:"";position:absolute;inset:-16px -14px}
+ .case-caption{bottom:88px}
+}
