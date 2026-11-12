@@ -11,6 +11,11 @@ const categories=['Live visuals','Live visuals','Interactive','Live visuals','3D
 const category=p=>categories[projects.indexOf(p)];
 const brand='https://www.roofvideodesign.com/wp-content/uploads/2023/03/ROOF-Logo-Animation-Home-_small-short.mp4';
 const mobile=matchMedia('(max-width:760px)').matches;
+/* Phones: lighter copies of the clips (720p loops, 540p long films) shipped in media/m; desktop keeps the originals.
+   The pool keeps using the original address as the clip's identity; only the file actually downloaded changes. */
+const MOBILE_CLIPS=new Set(['Be-you_Roof_1.mp4','Intelligent-Music-Project-Eurovision-2022_small-short.mp4','Intelligent-Music-Project-Eurovision-2022_small.mp4','ROOF-Logo-Animation-Home-_small-short.mp4','ROOF_Be-You_Projects_Background-Works-1.mp4','Roof-About_small-short.mp4','Roof-Camst-Innovation-Call-BTS.mp4','Roof-Seo-Services_small-short.mp4','Roof-Video-Ingresso-Camst-Header.mp4','Roof_Contacts-2.mp4','Salmo-Flop-Tour-Notch-Design-2022-Roof_small-short.mp4','Salmo-Flop-Tour-Notch-Design-2022-Roof_small.mp4','Scorpions-d3-Roof_small-short.mp4','Scorpions-header-Roof_small-short.mp4','Scorpions-home-Roof_small-short.mp4','Solana-Breakpoint21-Roof_small-short.mp4','Solana-Dataviz-Roof_small.mp4','Solana-HH-NFT-22-Roof_small-short.mp4','Solana-Post-Video_small.mp4','TheGiornalisti-Bologna_GoodScenes-Roof_small-short.mp4','TheGiornalisti-Tour-Roof_small.mp4']);
+const SMALL_SCREEN=matchMedia('(max-width:900px)').matches||(matchMedia('(pointer:coarse)').matches&&Math.min(screen.width,screen.height)<820);
+const vsrc=s=>{if(!SMALL_SCREEN||!s)return s;const n=String(s).split('/').pop();return MOBILE_CLIPS.has(n)?'media/m/'+n:s};
 /* Images: resized WebP copies from the WordPress image CDN (i0.wp.com); the original is the fallback. */
 const cdn=(src,w)=>src&&src.startsWith('https://www.roofvideodesign.com/')?`https://i0.wp.com/${src.slice(8)}?w=${w}&ssl=1`:src;
 const posterOf=p=>imgs(p)[0]?cdn(imgs(p)[0],mobile?900:1600):'';
@@ -22,10 +27,10 @@ const paras=lines=>lines.map(t=>`<p>${esc(t)}</p>`).join('');
 let current=0,cleanup=()=>{},videoObserver,nearObserver;
 function motion(target,props={}){if(!reduce&&window.gsap)gsap.fromTo(target,{opacity:0,y:20},{opacity:1,y:0,duration:.55,ease:'power3.out',clearProps:'opacity,transform',...props});}
 const pool=new Map();
-function makeVideo(src,preload='metadata'){const v=document.createElement('video');v.muted=true;v.defaultMuted=true;v.loop=true;v.playsInline=true;['muted','playsinline','webkit-playsinline','disablepictureinpicture','disableremoteplayback'].forEach(a=>v.setAttribute(a,''));v.preload=preload;v.src=src;return v}
+function makeVideo(src,preload='metadata'){const v=document.createElement('video');v.dataset.orig=src;v.muted=true;v.defaultMuted=true;v.loop=true;v.playsInline=true;['muted','playsinline','webkit-playsinline','disablepictureinpicture','disableremoteplayback'].forEach(a=>v.setAttribute(a,''));v.preload=preload;v.src=vsrc(src);return v}
 function pooled(src,preload){let v=pool.get(src);
  // the ROOF clip may already be downloading since the very first line of the page (see index.html)
- if(!v&&window.__roofEarly&&window.__roofEarly.getAttribute('src')===src){v=window.__roofEarly;window.__roofEarly=null;v.loop=true;['muted','playsinline','webkit-playsinline','disablepictureinpicture','disableremoteplayback'].forEach(a=>v.setAttribute(a,''));pool.set(src,v)}
+ if(!v&&window.__roofEarly&&(window.__roofEarly.dataset.orig||window.__roofEarly.getAttribute('src'))===src){v=window.__roofEarly;window.__roofEarly=null;v.loop=true;['muted','playsinline','webkit-playsinline','disablepictureinpicture','disableremoteplayback'].forEach(a=>v.setAttribute(a,''));pool.set(src,v)}
  if(!v){v=makeVideo(src,preload);pool.set(src,v)}else if(preload==='auto')v.preload='auto';return v}
 const inTransit=v=>!!v.closest('.opening-mosaic,.route-flight');
 // Swap each placeholder for the shared element. Moving a playing <video> keeps its buffer and current time: no restart, no reload.
@@ -106,7 +111,7 @@ function boot(){
   let preview=null;
   if(page!=='home'){preview=document.createElement('div');preview.className='mosaic-page-preview';preview.style.width=innerWidth+'px';preview.style.height=innerHeight+'px';for(const source of [document.querySelector('header'),main]){const copy=source.cloneNode(true);const live=[...source.querySelectorAll('video')];copy.querySelectorAll('video').forEach((v,k)=>{v.removeAttribute('src');v.preload='none';
      // Clips visible in the first screen (e.g. the ROOF video on About) are the real, playing elements: moved into the preview, back on landing.
-     const real=live[k];if(real&&!real.dataset.src&&real.getBoundingClientRect().top<innerHeight){const ph=document.createElement('video');ph.dataset.src=real.currentSrc||real.src;ph.className=real.className;if(real.getAttribute('poster'))ph.setAttribute('poster',real.getAttribute('poster'));real.replaceWith(ph);v.replaceWith(real);real.play().catch(()=>{})}});copy.removeAttribute('id');copy.querySelectorAll('[id]').forEach(n=>n.removeAttribute('id'));copy.querySelectorAll('h1,.page-title,.studio-opening,.contact-card').forEach(n=>{n.style.opacity=1;n.style.transform='none'});preview.append(copy)}center.append(preview)}
+     const real=live[k];if(real&&!real.dataset.src&&real.getBoundingClientRect().top<innerHeight){const ph=document.createElement('video');ph.dataset.src=real.dataset.orig||real.currentSrc||real.src;ph.className=real.className;if(real.getAttribute('poster'))ph.setAttribute('poster',real.getAttribute('poster'));real.replaceWith(ph);v.replaceWith(real);real.play().catch(()=>{})}});copy.removeAttribute('id');copy.querySelectorAll('[id]').forEach(n=>n.removeAttribute('id'));copy.querySelectorAll('h1,.page-title,.studio-opening,.contact-card').forEach(n=>{n.style.opacity=1;n.style.transform='none'});preview.append(copy)}center.append(preview)}
   const fit=()=>{if(preview)preview.style.transform=`scale(${center.clientWidth/innerWidth},${center.clientHeight/innerHeight})`};fit();
   const directions=[[0,-180],[120,-140],[200,0],[-180,0],[0,100],[180,0],[-140,150],[0,180],[140,150]];
   const tl=gsap.timeline({defaults:{force3D:true}});
