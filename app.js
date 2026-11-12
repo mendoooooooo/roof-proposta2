@@ -23,7 +23,10 @@ let current=0,cleanup=()=>{},videoObserver,nearObserver;
 function motion(target,props={}){if(!reduce&&window.gsap)gsap.fromTo(target,{opacity:0,y:20},{opacity:1,y:0,duration:.55,ease:'power3.out',clearProps:'opacity,transform',...props});}
 const pool=new Map();
 function makeVideo(src,preload='metadata'){const v=document.createElement('video');v.muted=true;v.defaultMuted=true;v.loop=true;v.playsInline=true;['muted','playsinline','webkit-playsinline','disablepictureinpicture','disableremoteplayback'].forEach(a=>v.setAttribute(a,''));v.preload=preload;v.src=src;return v}
-function pooled(src,preload){let v=pool.get(src);if(!v){v=makeVideo(src,preload);pool.set(src,v)}else if(preload==='auto')v.preload='auto';return v}
+function pooled(src,preload){let v=pool.get(src);
+ // the ROOF clip may already be downloading since the very first line of the page (see index.html)
+ if(!v&&window.__roofEarly&&window.__roofEarly.getAttribute('src')===src){v=window.__roofEarly;window.__roofEarly=null;v.loop=true;['muted','playsinline','webkit-playsinline','disablepictureinpicture','disableremoteplayback'].forEach(a=>v.setAttribute(a,''));pool.set(src,v)}
+ if(!v){v=makeVideo(src,preload);pool.set(src,v)}else if(preload==='auto')v.preload='auto';return v}
 const inTransit=v=>!!v.closest('.opening-mosaic,.route-flight');
 // Swap each placeholder for the shared element. Moving a playing <video> keeps its buffer and current time: no restart, no reload.
 function hydrate(root=main){root.querySelectorAll('video[data-src]').forEach(ph=>{const src=ph.dataset.src;let v=pool.get(src);if(v&&v.isConnected){if(inTransit(v))return;v=makeVideo(src)}else if(!v)v=pooled(src,ph.closest('.extra-video')?'metadata':'auto');const playing=v.classList.contains('is-playing');v.className=ph.className;v.classList.toggle('is-playing',playing);const poster=ph.getAttribute('poster');v.removeAttribute('poster');const box=ph.parentElement;if(poster&&box){box.style.backgroundImage=`url("${poster}")`;box.classList.add('poster-bg')}ph.replaceWith(v)})}
@@ -74,8 +77,9 @@ function prepareBoot(){
   if(el){if(el.tagName==='VIDEO')tile.append(el);watch.push(el)}});
  // Clips download a few at a time, centre first, instead of nine at once splitting the bandwidth (much shorter loader on phones).
  const queue=watch.filter(e=>e.tagName==='VIDEO').sort((a,b)=>(b.parentElement.classList.contains('mosaic-main')?1:0)-(a.parentElement.classList.contains('mosaic-main')?1:0));
- let qi=0,live=0;const CONC=mobile?3:5;
- const pump=()=>{while(live<CONC&&qi<queue.length){const v=queue[qi++];live++;let over=false;const next=()=>{if(over)return;over=true;live--;pump()};v.addEventListener('canplay',next,{once:true});v.addEventListener('error',next,{once:true});setTimeout(next,mobile?2500:4000);v.preload='auto';v.play().catch(()=>{})}};
+ // The ROOF clip downloads alone, with all the bandwidth, until it can play through; then the others follow, a few at a time.
+ let qi=0,live=0,keyDone=page!=='home';
+ const pump=()=>{const CONC=keyDone?(mobile?3:5):1;while(live<CONC&&qi<queue.length){const v=queue[qi++],isKey=v.parentElement.classList.contains('mosaic-main');live++;let over=false;const next=()=>{if(over)return;over=true;live--;if(isKey)keyDone=true;pump()};v.addEventListener(isKey?'canplaythrough':'canplay',next,{once:true});v.addEventListener('error',next,{once:true});setTimeout(next,isKey?(mobile?8000:5000):(mobile?2500:4000));v.preload='auto';v.play().catch(()=>{})}};
  pump();
  bootState={overlay,mosaic,tiles,watch,page};
 }
@@ -87,8 +91,14 @@ function boot(){
  const bar=overlay.querySelector('i');overlay.classList.add('has-progress');
  const ready=el=>el.tagName==='IMG'?el.complete:(!!el.error||(el.readyState>=4&&(el.paused||el.currentTime>.15))||(el.readyState>=3&&!el.paused&&el.currentTime>.4)||(el.duration>0&&el.buffered.length&&el.buffered.end(el.buffered.length-1)>=el.duration-.3));
  let done=false;const started=performance.now();
- // The site opens only when every clip is ready (safety exit after 30 s, so a broken network never locks the visitor out).
- const poll=setInterval(()=>{const n=watch.filter(ready).length;bar.style.width=Math.max(8,watch.length?n/watch.length*100:100)+'%';if(n===watch.length||performance.now()-started>(mobile?9000:15000))finish()},150);
+ // The ROOF clip (or, on inner pages, the page's own first clip) must be ready: the site never opens without it.
+ // The other mosaic clips get a little extra time, then they join as soon as they arrive.
+ const key=page==='home'?pool.get(brand):own;
+ const kprog=()=>{if(!key||ready(key))return 1;return key.duration>0&&key.buffered.length?Math.min(.95,key.buffered.end(key.buffered.length-1)/key.duration):0};
+ let keyAt=0;
+ const poll=setInterval(()=>{const now=performance.now(),n=watch.filter(ready).length,kp=kprog(),keyOk=kp>=1;if(keyOk&&!keyAt)keyAt=now;
+  bar.style.width=Math.max(8,(kp*.6+(watch.length?n/watch.length:1)*.4)*100)+'%';
+  if((keyOk&&(n===watch.length||now-started>(mobile?7000:12000)||now-keyAt>(mobile?2500:4000)))||now-started>60000)finish()},150);
  function finish(){if(done)return;done=true;clearInterval(poll);bar.style.width='100%';overlay.classList.add('loaded');overlay.querySelector('span').textContent='READY TO EXPERIENCE';setTimeout(()=>{opening();overlay.classList.add('leaving');setTimeout(()=>overlay.remove(),1100)},450)}
  function opening(){
   const center=tiles[4];
