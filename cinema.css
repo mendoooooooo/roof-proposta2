@@ -138,3 +138,6 @@ header.is-hidden{transform:translateY(-110%)}
  .cinema-hud a:after{content:"";position:absolute;inset:-16px -14px}
  .case-caption{bottom:88px}
 }
+
+/* v10 — the opening mosaic has a fixed height: rows share the screen and the bottom row is never cut. */
+.opening-mosaic{height:100vh;height:100lvh}
